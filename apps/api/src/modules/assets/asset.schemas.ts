@@ -1,6 +1,12 @@
 import * as yup from "yup";
 
-import type { ListAssetsQuery, ListAssetsQueryInput } from "./asset.types.js";
+import type {
+  AssetRouteParams,
+  CreateAssetInput,
+  ListAssetsQuery,
+  ListAssetsQueryInput,
+  UpdateAssetInput
+} from "./asset.types.js";
 import { assetStatuses, assetTypes } from "./asset.types.js";
 
 function isIsoDateString(value: string): boolean {
@@ -60,23 +66,77 @@ const optionalIsoDateString = yup
     value === null || value === undefined ? true : isIsoDateString(value)
   );
 
+const optionalPatchIsoDateString = yup
+  .string()
+  .transform(toOptionalString)
+  .optional()
+  .test("iso-date", "Must be a valid ISO date string.", (value) =>
+    value === undefined ? true : isIsoDateString(value)
+  );
+
+const optionalPatchNullableIsoDateString = yup
+  .string()
+  .nullable()
+  .transform((_value, originalValue) => {
+    if (originalValue === undefined || originalValue === "") {
+      return undefined;
+    }
+
+    if (originalValue === null) {
+      return null;
+    }
+
+    if (typeof originalValue === "string") {
+      return `${originalValue}`;
+    }
+
+    return "";
+  })
+  .optional()
+  .test("iso-date", "Must be a valid ISO date string.", (value) =>
+    value === undefined || value === null ? true : isIsoDateString(value)
+  );
+
 const optionalNumberSchema = yup
   .number()
   .transform(toOptionalFiniteNumber)
   .optional()
   .typeError("Must be a valid number.");
 
+const assetIdParamsSchema: yup.ObjectSchema<AssetRouteParams> = yup
+  .object({
+    assetId: yup.string().uuid().required()
+  })
+  .required();
+
+const nameSchema = yup.string().trim().required().min(1);
+const optionalNameSchema = yup.string().trim().optional().min(1);
+const assetTypeSchema = yup.mixed<(typeof assetTypes)[number]>().oneOf(assetTypes).required();
+const optionalAssetTypeSchema = yup
+  .string()
+  .optional()
+  .oneOf(assetTypes);
+const assetStatusSchema = yup
+  .mixed<(typeof assetStatuses)[number]>()
+  .oneOf(assetStatuses)
+  .required();
+const optionalAssetStatusSchema = yup
+  .string()
+  .optional()
+  .oneOf(assetStatuses);
+const latitudeSchema = yup.number().required().min(-90).max(90);
+const longitudeSchema = yup.number().required().min(-180).max(180);
+const optionalLatitudeSchema = yup.number().optional().min(-90).max(90);
+const optionalLongitudeSchema = yup.number().optional().min(-180).max(180);
+
 export const assetSeedSchema = yup
   .object({
     id: yup.string().uuid().required(),
-    name: yup.string().trim().required().min(1),
-    type: yup.mixed<(typeof assetTypes)[number]>().oneOf(assetTypes).required(),
-    status: yup
-      .mixed<(typeof assetStatuses)[number]>()
-      .oneOf(assetStatuses)
-      .required(),
-    lat: yup.number().required().min(-90).max(90),
-    lng: yup.number().required().min(-180).max(180),
+    name: nameSchema,
+    type: assetTypeSchema,
+    status: assetStatusSchema,
+    lat: latitudeSchema,
+    lng: longitudeSchema,
     installed_at: requiredIsoDateString,
     last_inspected_at: optionalIsoDateString,
     notes: yup.string().defined()
@@ -178,6 +238,41 @@ export const listAssetsQuerySchema: yup.ObjectSchema<ListAssetsQueryInput> = yup
     return true;
   })
   .required();
+
+export const createAssetBodySchema: yup.ObjectSchema<CreateAssetInput> = yup
+  .object({
+    name: nameSchema,
+    type: assetTypeSchema,
+    status: assetStatusSchema,
+    lat: latitudeSchema,
+    lng: longitudeSchema,
+    installed_at: requiredIsoDateString,
+    last_inspected_at: optionalIsoDateString,
+    notes: yup.string().defined()
+  })
+  .required();
+
+export const updateAssetBodySchema: yup.ObjectSchema<UpdateAssetInput> = yup
+  .object({
+    name: optionalNameSchema,
+    type: optionalAssetTypeSchema,
+    status: optionalAssetStatusSchema,
+    lat: optionalLatitudeSchema,
+    lng: optionalLongitudeSchema,
+    installed_at: optionalPatchIsoDateString,
+    last_inspected_at: optionalPatchNullableIsoDateString,
+    notes: yup.string().optional()
+  })
+  .test("non-empty-update", "At least one field must be provided.", (value) => {
+    if (!value) {
+      return false;
+    }
+
+    return Object.values(value).some((fieldValue) => fieldValue !== undefined);
+  })
+  .required();
+
+export { assetIdParamsSchema };
 
 export function toListAssetsQuery(value: ListAssetsQueryInput): ListAssetsQuery {
   const query: ListAssetsQuery = {

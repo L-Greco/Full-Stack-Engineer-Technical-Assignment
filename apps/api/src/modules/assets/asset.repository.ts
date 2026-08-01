@@ -1,12 +1,16 @@
 import { readFile } from "node:fs/promises";
 
-import {
-  database,
-  withDatabaseTransaction
-} from "../../database/database.js";
+import { database, withDatabaseTransaction } from "../../database/database.js";
 import { AppError } from "../../errors/app-error.js";
 import { assetSeedListSchema } from "./asset.schemas.js";
-import type { Asset, AssetListResult, ListAssetsQuery } from "./asset.types.js";
+
+import type {
+  Asset,
+  AssetListResult,
+  CreateAssetInput,
+  ListAssetsQuery,
+  UpdateAssetInput
+} from "./asset.types.js";
 
 type QueryParameter = string | number | null;
 
@@ -36,9 +40,10 @@ function mapAssetRow(row: AssetRow): Asset {
   };
 }
 
-function buildListAssetsWhereClause(
-  query: ListAssetsQuery
-): { clause: string; parameters: QueryParameter[] } {
+function buildListAssetsWhereClause(query: ListAssetsQuery): {
+  clause: string;
+  parameters: QueryParameter[];
+} {
   const conditions: string[] = [];
   const parameters: QueryParameter[] = [];
 
@@ -77,6 +82,29 @@ function buildListAssetsWhereClause(
     clause: conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "",
     parameters
   };
+}
+
+function getAssetSelectClause(): string {
+  return `
+    SELECT
+      id,
+      name,
+      type,
+      status,
+      ST_Y(location)::float8 AS lat,
+      ST_X(location)::float8 AS lng,
+      installed_at::text AS installed_at,
+      last_inspected_at::text AS last_inspected_at,
+      notes
+    FROM assets
+  `;
+}
+
+function isDatabaseErrorCode(
+  error: unknown,
+  code: string
+): error is { code: string; detail?: string } {
+  return typeof error === "object" && error !== null && "code" in error && error.code === code;
 }
 
 export async function seedAssetsIfEmpty(seedFilePath: string): Promise<void> {
@@ -164,17 +192,7 @@ export async function listAssets(query: ListAssetsQuery): Promise<AssetListResul
   const dataParameters = [...parameters, query.limit, offset];
   const assetsResult = await database.query<AssetRow>(
     `
-      SELECT
-        id,
-        name,
-        type,
-        status,
-        ST_Y(location)::float8 AS lat,
-        ST_X(location)::float8 AS lng,
-        installed_at::text AS installed_at,
-        last_inspected_at::text AS last_inspected_at,
-        notes
-      FROM assets
+      ${getAssetSelectClause()}
       ${clause}
       ORDER BY name ASC, id ASC
       LIMIT $${dataParameters.length - 1}
@@ -190,4 +208,145 @@ export async function listAssets(query: ListAssetsQuery): Promise<AssetListResul
     limit: query.limit,
     totalPages
   };
+}
+
+export async function createAsset(assetId: string, input: CreateAssetInput): Promise<Asset> {
+  try {
+    const result = await database.query<AssetRow>(
+      `
+        INSERT INTO assets (
+          id,
+          name,
+          type,
+          status,
+          installed_at,
+          last_inspected_at,
+          notes,
+          location
+        )
+        VALUES (
+          $1,
+          $2,
+          $3,
+          $4,
+          $5::date,
+          $6::date,
+          $7,
+          ST_SetSRID(ST_MakePoint($8, $9), 4326)
+        )
+        RETURNING
+          id,
+          name,
+          type,
+          status,
+          ST_Y(location)::float8 AS lat,
+          ST_X(location)::float8 AS lng,
+          installed_at::text AS installed_at,
+          last_inspected_at::text AS last_inspected_at,
+          notes
+      `,
+      [
+        assetId,
+        input.name,
+        input.type,
+        input.status,
+        input.installed_at,
+        input.last_inspected_at,
+        input.notes,
+        input.lng,
+        input.lat
+      ]
+    );
+
+    return mapAssetRow(result.rows[0]);
+  } catch (error: unknown) {
+    if (isDatabaseErrorCode(error, "23505")) {
+      throw new AppError({
+        statusCode: 409,
+        code: "ASSET_CONFLICT",
+        message: "An asset with the same identifier already exists."
+      });
+    }
+
+    throw error;
+  }
+}
+
+export async function updateAsset(assetId: string, input: UpdateAssetInput): Promise<Asset | null> {
+  const parameters: QueryParameter[] = [assetId];
+  const assignments: string[] = [];
+
+  if (input.name !== undefined) {
+    parameters.push(input.name);
+    assignments.push(`name = $${parameters.length}`);
+  }
+
+  if (input.type !== undefined) {
+    parameters.push(input.type);
+    assignments.push(`type = $${parameters.length}`);
+  }
+
+  if (input.status !== undefined) {
+    parameters.push(input.status);
+    assignments.push(`status = $${parameters.length}`);
+  }
+
+  if (input.installed_at !== undefined) {
+    parameters.push(input.installed_at);
+    assignments.push(`installed_at = $${parameters.length}::date`);
+  }
+
+  if (input.last_inspected_at !== undefined) {
+    parameters.push(input.last_inspected_at);
+    assignments.push(`last_inspected_at = $${parameters.length}::date`);
+  }
+
+  if (input.notes !== undefined) {
+    parameters.push(input.notes);
+    assignments.push(`notes = $${parameters.length}`);
+  }
+
+  if (input.lng !== undefined || input.lat !== undefined) {
+    parameters.push(input.lng ?? null);
+    const lngIndex = parameters.length;
+    parameters.push(input.lat ?? null);
+    const latIndex = parameters.length;
+    assignments.push(`
+      location = ST_SetSRID(
+        ST_MakePoint(
+          COALESCE($${lngIndex}, ST_X(location)),
+          COALESCE($${latIndex}, ST_Y(location))
+        ),
+        4326
+      )
+    `);
+  }
+
+  const result = await database.query<AssetRow>(
+    `
+      UPDATE assets
+      SET ${assignments.join(", ")}
+      WHERE id = $1
+      RETURNING
+        id,
+        name,
+        type,
+        status,
+        ST_Y(location)::float8 AS lat,
+        ST_X(location)::float8 AS lng,
+        installed_at::text AS installed_at,
+        last_inspected_at::text AS last_inspected_at,
+        notes
+    `,
+    parameters
+  );
+
+  const updatedRow = result.rows[0];
+  return updatedRow ? mapAssetRow(updatedRow) : null;
+}
+
+export async function deleteAsset(assetId: string): Promise<boolean> {
+  const result = await database.query("DELETE FROM assets WHERE id = $1", [assetId]);
+
+  return result.rowCount === 1;
 }

@@ -42,6 +42,32 @@ export type ListAssetsQueryInput = {
   maxLng?: number;
 };
 
+export type AssetRouteParams = {
+  assetId: string;
+};
+
+export type CreateAssetInput = {
+  name: string;
+  type: AssetType;
+  status: AssetStatus;
+  lat: number;
+  lng: number;
+  installed_at: string;
+  last_inspected_at: string | null;
+  notes: string;
+};
+
+export type UpdateAssetInput = {
+  name?: string;
+  type?: AssetType;
+  status?: AssetStatus;
+  lat?: number;
+  lng?: number;
+  installed_at?: string;
+  last_inspected_at?: string | null;
+  notes?: string;
+};
+
 export type AssetListResult = {
   items: Asset[];
   total: number;
