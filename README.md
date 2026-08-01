@@ -13,4 +13,3 @@ Initial monorepo scaffold for the technical assignment.
 1. Implement the backend API and seed flow.
 2. Build the frontend list, map, and asset form flows.
 3. Connect the app to the local Postgres instance.
-
