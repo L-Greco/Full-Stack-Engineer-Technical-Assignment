@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-ink: #123047;
+  --color-brand-mist: #e7edf5;
+  --color-brand-accent: #206269;
+}
+
+:root {
+  color: var(--color-brand-ink);
+  font-family: "Segoe UI", sans-serif;
+}
+
+body {
+  margin: 0;
+}
+
+button,
+select,
+input,
+textarea {
+  font: inherit;
+}
+
+.selectField {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 1px solid rgb(15 23 42 / 0.16);
+  border-radius: 1rem;
+  background-color: #ffffff;
+  color: #0f172a;
+  line-height: 1.5;
+  outline: none;
+  box-shadow: none;
+}
+
+.selectField:focus {
+  border-color: rgb(148 163 184);
+  background-color: #ffffff;
+  box-shadow: 0 0 0 4px rgb(148 163 184 / 0.15);
+}
+
+.mainShadow {
+  box-shadow: 0 20px 45px rgba(18, 48, 71, 0.08);
+}
