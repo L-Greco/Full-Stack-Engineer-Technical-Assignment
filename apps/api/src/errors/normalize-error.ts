@@ -9,10 +9,7 @@ function isInvalidJsonError(error: unknown): boolean {
     return false;
   }
 
-  return (
-    error.type === "entity.parse.failed" &&
-    (error.status === 400 || error.statusCode === 400)
-  );
+  return error.type === "entity.parse.failed" && (error.status === 400 || error.statusCode === 400);
 }
 
 export function normalizeError(error: unknown): AppError {
