@@ -21,18 +21,18 @@ type ListAssetsLocals = {
 export function listAssets(
   _req: Request,
   res: Response<ListAssetsResponse, ListAssetsLocals>
-): void {
-  const result = assetService.listAssets(
-    toListAssetsQuery(res.locals.validatedQuery)
-  );
-
-  res.status(200).json({
-    data: result.items,
-    meta: {
-      page: result.page,
-      limit: result.limit,
-      total: result.total,
-      totalPages: result.totalPages
-    }
-  });
+): Promise<void> {
+  return assetService
+    .listAssets(toListAssetsQuery(res.locals.validatedQuery))
+    .then((result) => {
+      res.status(200).json({
+        data: result.items,
+        meta: {
+          page: result.page,
+          limit: result.limit,
+          total: result.total,
+          totalPages: result.totalPages
+        }
+      });
+    });
 }

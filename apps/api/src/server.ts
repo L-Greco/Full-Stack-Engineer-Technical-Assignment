@@ -1,8 +1,15 @@
 import { app } from "./app.js";
 import { env } from "./config/env.js";
+import {
+  closeDatabase,
+  connectToDatabase,
+  initializeDatabase
+} from "./database/database.js";
 import { seedAssetsIfEmpty } from "./modules/assets/asset.repository.js";
 
 export async function startServer(): Promise<void> {
+  await connectToDatabase();
+  await initializeDatabase();
   await seedAssetsIfEmpty(env.seedFilePath);
 
   const server = app.listen(env.port, () => {
@@ -12,7 +19,9 @@ export async function startServer(): Promise<void> {
   const shutdown = (signal: NodeJS.Signals) => {
     console.log(`Received ${signal}, shutting down API.`);
     server.close(() => {
-      process.exit(0);
+      void closeDatabase().finally(() => {
+        process.exit(0);
+      });
     });
   };
 
