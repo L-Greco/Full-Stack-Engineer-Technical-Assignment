@@ -1,16 +1,6 @@
-import cors from "cors";
-import express from "express";
+import { startServer } from "./server.js";
 
-const app = express();
-const port = Number(process.env.PORT ?? 3001);
-
-app.use(cors());
-app.use(express.json());
-
-app.get("/health", (_request, response) => {
-  response.json({ ok: true });
-});
-
-app.listen(port, () => {
-  console.log(`API listening on http://localhost:${port}`);
+startServer().catch((error: unknown) => {
+  console.error("Failed to start API", error);
+  process.exit(1);
 });
