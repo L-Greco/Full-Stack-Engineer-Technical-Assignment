@@ -1,26 +1,42 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
+import { AssetDetailPanel } from "./components/AssetDetailPanel";
 import { AssetFilters } from "./components/AssetFilters";
 import { AssetList } from "./components/AssetList/AssetList";
 import { AssetSummary } from "./components/AssetSummary";
 import ErrorMessage from "./components/AssetList/ErrorMessage";
+import { AssetMap } from "./components/AssetMap";
 
 import { useAssetListQuery } from "./lib/hooks/useAssetListQuery";
 
-import type { AssetStatus, AssetType, ListAssetsParams } from "./types/assets";
+import type { Asset, AssetStatus, AssetType, ListAssetsParams } from "./types/assets";
 
 const DEFAULT_FILTERS: ListAssetsParams = {
   page: 1,
   limit: 25
 };
+const EMPTY_ASSETS: Asset[] = [];
 
 export default function App() {
   const [filters, setFilters] = useState<ListAssetsParams>(DEFAULT_FILTERS);
+  const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
   const { data, error, isLoading, refetch } = useAssetListQuery(filters);
 
-  const assets = data?.data ?? [];
+  const assets = data?.data ?? EMPTY_ASSETS;
   const total = data?.meta.total ?? 0;
   const errorMessage = error instanceof Error ? error.message : null;
+
+  const activeSelectedAssetId = useMemo(() => {
+    return selectedAssetId !== null && assets.some((asset) => asset.id === selectedAssetId)
+      ? selectedAssetId
+      : assets[0]?.id ?? null;
+  }, [assets, selectedAssetId]);
+  
+  const selectedAsset = useMemo(() => {
+    return activeSelectedAssetId === null
+      ? null
+      : assets.find((asset) => asset.id === activeSelectedAssetId) ?? null;
+  }, [activeSelectedAssetId, assets]);
 
   function handleTypeChange(type: AssetType | "all") {
     setFilters((currentFilters) => ({
@@ -44,6 +60,10 @@ export default function App() {
 
   function handleRetry() {
     void refetch();
+  }
+
+  function handleSelectAsset(assetId: string) {
+    setSelectedAssetId(assetId);
   }
 
   return (
@@ -75,7 +95,25 @@ export default function App() {
         {errorMessage ? (
           <ErrorMessage errorMessage={errorMessage} onRetry={handleRetry} />
         ) : (
-          <AssetList assets={assets} isLoading={isLoading} />
+          <section className="mt-5 flex flex-col gap-5 xl:flex-row">
+            <div className="flex min-w-0 flex-1 flex-col gap-5">
+              <AssetMap
+                assets={assets}
+                onSelectAsset={handleSelectAsset}
+                selectedAssetId={activeSelectedAssetId}
+              />
+              <AssetList
+                assets={assets}
+                isLoading={isLoading}
+                onSelectAsset={handleSelectAsset}
+                selectedAssetId={activeSelectedAssetId}
+              />
+            </div>
+
+            <div className="w-full xl:max-w-sm xl:flex-none">
+              <AssetDetailPanel asset={selectedAsset} />
+            </div>
+          </section>
         )}
       </section>
     </main>

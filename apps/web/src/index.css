@@ -15,6 +15,10 @@ body {
   margin: 0;
 }
 
+#root {
+  min-height: 100vh;
+}
+
 button,
 select,
 input,
@@ -42,4 +46,10 @@ textarea {
 
 .mainShadow {
   box-shadow: 0 20px 45px rgba(18, 48, 71, 0.08);
+}
+
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+  font: inherit;
 }
