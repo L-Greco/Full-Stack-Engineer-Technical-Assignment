@@ -1,0 +1,14 @@
+{
+  "name": "asset-tracker-assignment",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev --workspace @asset-tracker/api",
+    "dev:web": "npm run dev --workspace @asset-tracker/web",
+    "build:api": "npm run build --workspace @asset-tracker/api",
+    "build:web": "npm run build --workspace @asset-tracker/web"
+  }
+}
+
