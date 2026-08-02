@@ -1,17 +1,17 @@
 import {
   CircleMarker,
   MapContainer,
-  TileLayer,
+  TileLayer
 } from "react-leaflet";
 
 import AssetMapViewport from "./AssetList/AssetMapViewPort";
 
 import { DEFAULT_CENTER, DEFAULT_ZOOM } from "../lib/conts";
+import { selectSelectedAssetId, selectSelectAsset, useAssetUiStore } from "../lib/stores/useAssetUiStore";
 
 import type { Asset } from "../types/assets";
 
-
-const STATUS_COLORS= {
+const STATUS_COLORS = {
   ok: "#10b981",
   warning: "#f59e0b",
   critical: "#f43f5e"
@@ -19,17 +19,14 @@ const STATUS_COLORS= {
 
 interface ComponentProps {
   assets: Asset[];
-  selectedAssetId: string | null;
-  onSelectAsset: (assetId: string) => void;
 }
 
-export function AssetMap({
-  assets,
-  selectedAssetId,
-  onSelectAsset
-}: ComponentProps) {
+export function AssetMap({ assets }: ComponentProps) {
+  const selectedAssetId = useAssetUiStore(selectSelectedAssetId);
+  const selectAsset = useAssetUiStore(selectSelectAsset);
+
   return (
-    <section id='asset-map' className="rounded-3xl border border-slate-900/8 bg-white/92 p-5 mainShadow">
+    <section id="asset-map" className="rounded-3xl border border-slate-900/8 bg-white/92 p-5 mainShadow">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="mb-2.5 text-[0.78rem] font-bold uppercase tracking-[0.16em] text-teal-700">
@@ -62,7 +59,7 @@ export function AssetMap({
               <CircleMarker
                 center={[asset.lat, asset.lng]}
                 eventHandlers={{
-                  click: () => onSelectAsset(asset.id)
+                  click: () => selectAsset(asset.id)
                 }}
                 fillColor={STATUS_COLORS[asset.status]}
                 fillOpacity={0.9}

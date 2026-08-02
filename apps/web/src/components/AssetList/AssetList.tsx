@@ -1,4 +1,5 @@
 import { formatDate } from "../../lib/utils";
+import { selectSelectedAssetId, selectSelectAsset, useAssetUiStore } from "../../lib/stores/useAssetUiStore";
 
 import { StatusBadge } from "../StatusBadge";
 import LoadingAssets from "./LoadingAssets";
@@ -9,19 +10,14 @@ import type { Asset } from "../../types/assets";
 interface ComponentProps {
   assets: Asset[];
   isLoading: boolean;
-  onSelectAsset: (assetId: string) => void;
-  selectedAssetId: string | null;
 }
 
-export function AssetList({
-  assets,
-  isLoading,
-  onSelectAsset,
-  selectedAssetId
-}: ComponentProps) {
+export function AssetList({ assets, isLoading }: ComponentProps) {
+  const selectedAssetId = useAssetUiStore(selectSelectedAssetId);
+  const selectAsset = useAssetUiStore(selectSelectAsset);
 
   function handleSelectAsset(assetId: string) {
-    onSelectAsset(assetId);
+    selectAsset(assetId);
 
     const assetMap = document.getElementById(`asset-map`);
     if (assetMap) {

@@ -8,6 +8,7 @@ import ErrorMessage from "./components/AssetList/ErrorMessage";
 import { AssetMap } from "./components/AssetMap";
 
 import { useAssetListQuery } from "./lib/hooks/useAssetListQuery";
+import { selectSelectedAssetId, useAssetUiStore } from "./lib/stores/useAssetUiStore";
 
 import type { Asset, AssetStatus, AssetType, ListAssetsParams } from "./types/assets";
 
@@ -19,8 +20,8 @@ const EMPTY_ASSETS: Asset[] = [];
 
 export default function App() {
   const [filters, setFilters] = useState<ListAssetsParams>(DEFAULT_FILTERS);
-  const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
   const { data, error, isLoading, refetch } = useAssetListQuery(filters);
+  const selectedAssetId = useAssetUiStore(selectSelectedAssetId);
 
   const assets = data?.data ?? EMPTY_ASSETS;
   const total = data?.meta.total ?? 0;
@@ -62,10 +63,6 @@ export default function App() {
     void refetch();
   }
 
-  function handleSelectAsset(assetId: string) {
-    setSelectedAssetId(assetId);
-  }
-
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(71,125,255,0.18),transparent_28%),linear-gradient(180deg,#f4f7fb_0%,#e7edf5_100%)] px-4 py-5 text-slate-900 sm:px-8 sm:py-8">
       <section className="mx-auto max-w-7xl rounded-[28px] border border-slate-900/8 bg-white/92 p-6 mainShadow sm:p-8">
@@ -97,17 +94,8 @@ export default function App() {
         ) : (
           <section className="mt-5 flex flex-col gap-5 xl:flex-row">
             <div className="flex min-w-0 flex-1 flex-col gap-5">
-              <AssetMap
-                assets={assets}
-                onSelectAsset={handleSelectAsset}
-                selectedAssetId={activeSelectedAssetId}
-              />
-              <AssetList
-                assets={assets}
-                isLoading={isLoading}
-                onSelectAsset={handleSelectAsset}
-                selectedAssetId={activeSelectedAssetId}
-              />
+              <AssetMap assets={assets} />
+              <AssetList assets={assets} isLoading={isLoading} />
             </div>
 
             <div className="w-full xl:max-w-sm xl:flex-none">
