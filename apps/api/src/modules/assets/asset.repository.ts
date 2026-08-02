@@ -26,6 +26,25 @@ type AssetRow = {
   notes: string;
 };
 
+type SqlStatement = {
+  text: string;
+  parameters: QueryParameter[];
+};
+
+const assetSelectClause = `
+  SELECT
+    id,
+    name,
+    type,
+    status,
+    ST_Y(location)::float8 AS lat,
+    ST_X(location)::float8 AS lng,
+    installed_at::text AS installed_at,
+    last_inspected_at::text AS last_inspected_at,
+    notes
+  FROM assets
+`;
+
 function mapAssetRow(row: AssetRow): Asset {
   return {
     id: row.id,
@@ -40,10 +59,7 @@ function mapAssetRow(row: AssetRow): Asset {
   };
 }
 
-function buildListAssetsWhereClause(query: ListAssetsQuery): {
-  clause: string;
-  parameters: QueryParameter[];
-} {
+function buildListAssetsWhereClause(query: ListAssetsQuery): SqlStatement {
   const conditions: string[] = [];
   const parameters: QueryParameter[] = [];
 
@@ -79,25 +95,144 @@ function buildListAssetsWhereClause(query: ListAssetsQuery): {
   }
 
   return {
-    clause: conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "",
+    text: conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "",
     parameters
   };
 }
 
-function getAssetSelectClause(): string {
+function buildListAssetsCountStatement(query: ListAssetsQuery): SqlStatement {
+  const whereClause = buildListAssetsWhereClause(query);
+
   return `
-    SELECT
-      id,
-      name,
-      type,
-      status,
-      ST_Y(location)::float8 AS lat,
-      ST_X(location)::float8 AS lng,
-      installed_at::text AS installed_at,
-      last_inspected_at::text AS last_inspected_at,
-      notes
-    FROM assets
-  `;
+    SELECT COUNT(*)::text AS total FROM assets ${whereClause.text}
+  `
+    ? {
+        text: `SELECT COUNT(*)::text AS total FROM assets ${whereClause.text}`,
+        parameters: whereClause.parameters
+      }
+    : {
+        text: "SELECT COUNT(*)::text AS total FROM assets",
+        parameters: whereClause.parameters
+      };
+}
+
+function buildListAssetsSelectStatement(query: ListAssetsQuery): SqlStatement {
+  const whereClause = buildListAssetsWhereClause(query);
+  const offset = (query.page - 1) * query.limit;
+  const parameters = [...whereClause.parameters, query.limit, offset];
+  const limitParameterIndex = parameters.length - 1;
+  const offsetParameterIndex = parameters.length;
+
+  return {
+    text: `
+      ${assetSelectClause}
+      ${whereClause.text}
+      ORDER BY name ASC, id ASC
+      LIMIT $${limitParameterIndex}
+      OFFSET $${offsetParameterIndex}
+    `,
+    parameters
+  };
+}
+
+function addUpdateAssignment(
+  assignments: string[],
+  parameters: QueryParameter[],
+  column: string,
+  value: QueryParameter,
+  cast?: "::date"
+): void {
+  parameters.push(value);
+  assignments.push(`${column} = $${parameters.length}${cast ?? ""}`);
+}
+
+function addLocationUpdateAssignment(
+  assignments: string[],
+  parameters: QueryParameter[],
+  input: UpdateAssetInput
+): void {
+  if (input.lng === undefined && input.lat === undefined) {
+    return;
+  }
+
+  parameters.push(input.lng ?? null);
+  const lngIndex = parameters.length;
+  parameters.push(input.lat ?? null);
+  const latIndex = parameters.length;
+  assignments.push(`
+    location = ST_SetSRID(
+      ST_MakePoint(
+        COALESCE($${lngIndex}, ST_X(location)),
+        COALESCE($${latIndex}, ST_Y(location))
+      ),
+      4326
+    )
+  `);
+}
+
+function buildUpdateAssetStatement(
+  assetId: string,
+  input: UpdateAssetInput
+): SqlStatement {
+  const parameters: QueryParameter[] = [assetId];
+  const assignments: string[] = [];
+
+  if (input.name !== undefined) {
+    addUpdateAssignment(assignments, parameters, "name", input.name);
+  }
+
+  if (input.type !== undefined) {
+    addUpdateAssignment(assignments, parameters, "type", input.type);
+  }
+
+  if (input.status !== undefined) {
+    addUpdateAssignment(assignments, parameters, "status", input.status);
+  }
+
+  if (input.installed_at !== undefined) {
+    addUpdateAssignment(
+      assignments,
+      parameters,
+      "installed_at",
+      input.installed_at,
+      "::date"
+    );
+  }
+
+  if (input.last_inspected_at !== undefined) {
+    addUpdateAssignment(
+      assignments,
+      parameters,
+      "last_inspected_at",
+      input.last_inspected_at,
+      "::date"
+    );
+  }
+
+  if (input.notes !== undefined) {
+    addUpdateAssignment(assignments, parameters, "notes", input.notes);
+  }
+
+  addLocationUpdateAssignment(assignments, parameters, input);
+
+  return {
+    text: `
+      UPDATE assets
+      SET ${assignments.join(", ")}
+      WHERE id = $1
+      RETURNING
+        id,
+        name,
+        type,
+        status,
+        ST_Y(location)::float8 AS lat,
+        ST_X(location)::float8 AS lng,
+        installed_at::text AS installed_at,
+        last_inspected_at::text AS last_inspected_at,
+        notes
+    `,
+    parameters
+  };
 }
 
 function isDatabaseErrorCode(
@@ -178,27 +313,20 @@ export async function seedAssetsIfEmpty(seedFilePath: string): Promise<void> {
 }
 
 export async function listAssets(query: ListAssetsQuery): Promise<AssetListResult> {
-  const { clause, parameters } = buildListAssetsWhereClause(query);
-  const offset = (query.page - 1) * query.limit;
+  const totalStatement = buildListAssetsCountStatement(query);
+  const listStatement = buildListAssetsSelectStatement(query);
 
   const totalResult = await database.query<{ total: string }>(
-    `SELECT COUNT(*)::text AS total FROM assets ${clause}`,
-    parameters
+    totalStatement.text,
+    totalStatement.parameters
   );
 
   const total = Number(totalResult.rows[0]?.total ?? "0");
   const totalPages = total === 0 ? 0 : Math.ceil(total / query.limit);
 
-  const dataParameters = [...parameters, query.limit, offset];
   const assetsResult = await database.query<AssetRow>(
-    `
-      ${getAssetSelectClause()}
-      ${clause}
-      ORDER BY name ASC, id ASC
-      LIMIT $${dataParameters.length - 1}
-      OFFSET $${dataParameters.length}
-    `,
-    dataParameters
+    listStatement.text,
+    listStatement.parameters
   );
 
   return {
@@ -273,72 +401,11 @@ export async function createAsset(assetId: string, input: CreateAssetInput): Pro
 }
 
 export async function updateAsset(assetId: string, input: UpdateAssetInput): Promise<Asset | null> {
-  const parameters: QueryParameter[] = [assetId];
-  const assignments: string[] = [];
-
-  if (input.name !== undefined) {
-    parameters.push(input.name);
-    assignments.push(`name = $${parameters.length}`);
-  }
-
-  if (input.type !== undefined) {
-    parameters.push(input.type);
-    assignments.push(`type = $${parameters.length}`);
-  }
-
-  if (input.status !== undefined) {
-    parameters.push(input.status);
-    assignments.push(`status = $${parameters.length}`);
-  }
-
-  if (input.installed_at !== undefined) {
-    parameters.push(input.installed_at);
-    assignments.push(`installed_at = $${parameters.length}::date`);
-  }
-
-  if (input.last_inspected_at !== undefined) {
-    parameters.push(input.last_inspected_at);
-    assignments.push(`last_inspected_at = $${parameters.length}::date`);
-  }
-
-  if (input.notes !== undefined) {
-    parameters.push(input.notes);
-    assignments.push(`notes = $${parameters.length}`);
-  }
-
-  if (input.lng !== undefined || input.lat !== undefined) {
-    parameters.push(input.lng ?? null);
-    const lngIndex = parameters.length;
-    parameters.push(input.lat ?? null);
-    const latIndex = parameters.length;
-    assignments.push(`
-      location = ST_SetSRID(
-        ST_MakePoint(
-          COALESCE($${lngIndex}, ST_X(location)),
-          COALESCE($${latIndex}, ST_Y(location))
-        ),
-        4326
-      )
-    `);
-  }
+  const statement = buildUpdateAssetStatement(assetId, input);
 
   const result = await database.query<AssetRow>(
-    `
-      UPDATE assets
-      SET ${assignments.join(", ")}
-      WHERE id = $1
-      RETURNING
-        id,
-        name,
-        type,
-        status,
-        ST_Y(location)::float8 AS lat,
-        ST_X(location)::float8 AS lng,
-        installed_at::text AS installed_at,
-        last_inspected_at::text AS last_inspected_at,
-        notes
-    `,
-    parameters
+    statement.text,
+    statement.parameters
   );
 
   const updatedRow = result.rows[0];
