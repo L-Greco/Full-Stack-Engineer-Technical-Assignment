@@ -8,6 +8,7 @@ import { AssetSummary } from "./components/AssetSummary";
 import ErrorMessage from "./components/AssetList/ErrorMessage";
 import { AssetMap } from "./components/AssetMap";
 
+import { getActiveSelectedAssetId, getSelectedAsset } from "./lib/asset-selection";
 import { useAssetListQuery } from "./lib/hooks/useAssetListQuery";
 import {
   selectPanelMode,
@@ -34,15 +35,11 @@ export default function App() {
   const errorMessage = error instanceof Error ? error.message : null;
 
   const activeSelectedAssetId = useMemo(() => {
-    return selectedAssetId !== null && assets.some((asset) => asset.id === selectedAssetId)
-      ? selectedAssetId
-      : assets[0]?.id ?? null;
+    return getActiveSelectedAssetId(assets, selectedAssetId);
   }, [assets, selectedAssetId]);
-  
+
   const selectedAsset = useMemo(() => {
-    return activeSelectedAssetId === null
-      ? null
-      : assets.find((asset) => asset.id === activeSelectedAssetId) ?? null;
+    return getSelectedAsset(activeSelectedAssetId, assets);
   }, [activeSelectedAssetId, assets]);
 
   function handleTypeChange(type: AssetType | "all") {
@@ -108,7 +105,10 @@ export default function App() {
               {panelMode === "view" ? (
                 <AssetDetailPanel asset={selectedAsset} />
               ) : (
-                <AssetFormPanel asset={panelMode === "edit" ? selectedAsset : null} isEditing={panelMode === "edit"} />
+                <AssetFormPanel
+                  asset={panelMode === "edit" ? selectedAsset : null}
+                  isEditing={panelMode === "edit"}
+                />
               )}
             </div>
           </section>
