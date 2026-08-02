@@ -4,7 +4,13 @@ import type { AxiosError } from "axios";
 
 import axios from "../axios";
 
-import type { AssetListResponse, AssetStatus, AssetType } from "../../types/assets";
+import type {
+  AssetListResponse,
+  AssetResponse,
+  AssetStatus,
+  AssetType,
+  AssetWriteInput
+} from "../../types/assets";
 
 interface ListAssetsParams {
   limit: number;
@@ -28,6 +34,37 @@ export async function listAssets(params: ListAssetsParams): Promise<AssetListRes
     const response = await axios.get<AssetListResponse>("/api/assets", {
       params
     });
+
+    return response.data;
+  } catch (error) {
+    if (isAxiosError<ErrorResponse>(error)) {
+      throw new Error(readErrorMessage(error));
+    }
+
+    throw error;
+  }
+}
+
+export async function createAsset(input: AssetWriteInput): Promise<AssetResponse> {
+  try {
+    const response = await axios.post<AssetResponse>("/api/assets", input);
+
+    return response.data;
+  } catch (error) {
+    if (isAxiosError<ErrorResponse>(error)) {
+      throw new Error(readErrorMessage(error));
+    }
+
+    throw error;
+  }
+}
+
+export async function updateAsset(
+  assetId: string,
+  input: AssetWriteInput
+): Promise<AssetResponse> {
+  try {
+    const response = await axios.patch<AssetResponse>(`/api/assets/${assetId}`, input);
 
     return response.data;
   } catch (error) {

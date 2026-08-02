@@ -2,13 +2,18 @@ import { useMemo, useState } from "react";
 
 import { AssetDetailPanel } from "./components/AssetDetailPanel";
 import { AssetFilters } from "./components/AssetFilters";
+import { AssetFormPanel } from "./components/AssetFormPanel";
 import { AssetList } from "./components/AssetList/AssetList";
 import { AssetSummary } from "./components/AssetSummary";
 import ErrorMessage from "./components/AssetList/ErrorMessage";
 import { AssetMap } from "./components/AssetMap";
 
 import { useAssetListQuery } from "./lib/hooks/useAssetListQuery";
-import { selectSelectedAssetId, useAssetUiStore } from "./lib/stores/useAssetUiStore";
+import {
+  selectPanelMode,
+  selectSelectedAssetId,
+  useAssetUiStore
+} from "./lib/stores/useAssetUiStore";
 
 import type { Asset, AssetStatus, AssetType, ListAssetsParams } from "./types/assets";
 
@@ -21,6 +26,7 @@ const EMPTY_ASSETS: Asset[] = [];
 export default function App() {
   const [filters, setFilters] = useState<ListAssetsParams>(DEFAULT_FILTERS);
   const { data, error, isLoading, refetch } = useAssetListQuery(filters);
+  const panelMode = useAssetUiStore(selectPanelMode);
   const selectedAssetId = useAssetUiStore(selectSelectedAssetId);
 
   const assets = data?.data ?? EMPTY_ASSETS;
@@ -92,14 +98,18 @@ export default function App() {
         {errorMessage ? (
           <ErrorMessage errorMessage={errorMessage} onRetry={handleRetry} />
         ) : (
-          <section className="mt-5 flex flex-col gap-5 xl:flex-row">
+          <section className="mt-5 flex flex-col-reverse gap-5 xl:flex-row">
             <div className="flex min-w-0 flex-1 flex-col gap-5">
               <AssetMap assets={assets} />
               <AssetList assets={assets} isLoading={isLoading} />
             </div>
 
             <div className="w-full xl:max-w-sm xl:flex-none">
-              <AssetDetailPanel asset={selectedAsset} />
+              {panelMode === "view" ? (
+                <AssetDetailPanel asset={selectedAsset} />
+              ) : (
+                <AssetFormPanel asset={panelMode === "edit" ? selectedAsset : null} isEditing={panelMode === "edit"} />
+              )}
             </div>
           </section>
         )}

@@ -7,7 +7,13 @@ import {
 import AssetMapViewport from "./AssetList/AssetMapViewPort";
 
 import { DEFAULT_CENTER, DEFAULT_ZOOM } from "../lib/conts";
-import { selectSelectedAssetId, selectSelectAsset, useAssetUiStore } from "../lib/stores/useAssetUiStore";
+import {
+  selectDraftLocation,
+  selectIsPickingLocation,
+  selectSelectedAssetId,
+  selectSelectAsset,
+  useAssetUiStore
+} from "../lib/stores/useAssetUiStore";
 
 import type { Asset } from "../types/assets";
 
@@ -22,7 +28,10 @@ interface ComponentProps {
 }
 
 export function AssetMap({ assets }: ComponentProps) {
+  const draftLocation = useAssetUiStore(selectDraftLocation);
+  const isPickingLocation = useAssetUiStore(selectIsPickingLocation);
   const selectedAssetId = useAssetUiStore(selectSelectedAssetId);
+
   const selectAsset = useAssetUiStore(selectSelectAsset);
 
   return (
@@ -36,6 +45,11 @@ export function AssetMap({ assets }: ComponentProps) {
             Asset locations
           </h2>
         </div>
+        {isPickingLocation ? (
+          <p className="rounded-2xl bg-teal-50 px-3 py-2 text-sm font-medium text-teal-800">
+            Click the map to place the asset
+          </p>
+        ) : null}
       </div>
 
       <div className="mt-5 h-105 overflow-hidden rounded-3xl border border-slate-900/8">
@@ -63,7 +77,7 @@ export function AssetMap({ assets }: ComponentProps) {
                 }}
                 fillColor={STATUS_COLORS[asset.status]}
                 fillOpacity={0.9}
-                key={asset.id}
+                key={`${asset.id}-${asset.status}`}
                 pathOptions={{
                   color: isSelected ? "#0f172a" : "#ffffff",
                   weight: isSelected ? 3 : 2
@@ -72,6 +86,20 @@ export function AssetMap({ assets }: ComponentProps) {
               />
             );
           })}
+
+          {draftLocation ? (
+            <CircleMarker
+              center={[draftLocation.lat, draftLocation.lng]}
+              fillColor="#0f766e"
+              fillOpacity={0.18}
+              pathOptions={{
+                color: "#0f766e",
+                dashArray: "4 4",
+                weight: 3
+              }}
+              radius={12}
+            />
+          ) : null}
         </MapContainer>
       </div>
 

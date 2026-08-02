@@ -16,6 +16,11 @@ export type Asset = {
   notes: string;
 };
 
+export type AssetLocation = {
+  lat: number;
+  lng: number;
+};
+
 export type ListAssetsParams = {
   limit: number;
   page: number;
@@ -31,4 +36,30 @@ export type AssetListResponse = {
     total: number;
     totalPages: number;
   };
+};
+
+export type AssetWriteInput = {
+  name: string;
+  type: AssetType;
+  status: AssetStatus;
+  lat: number;
+  lng: number;
+  installed_at: string;
+  last_inspected_at: string | null;
+  notes: string;
+};
+
+export type AssetFormValues = {
+  name: string;
+  type: AssetType;
+  status: AssetStatus;
+  lat: number;
+  lng: number;
+  installed_at: string;
+  last_inspected_at: string;
+  notes: string;
+};
+
+export type AssetResponse = {
+  data: Asset;
 };
