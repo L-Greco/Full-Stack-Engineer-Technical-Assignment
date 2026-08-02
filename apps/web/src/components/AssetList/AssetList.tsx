@@ -2,6 +2,7 @@ import { formatDate } from "../../lib/utils";
 import { selectSelectedAssetId, selectSelectAsset, useAssetUiStore } from "../../lib/stores/useAssetUiStore";
 
 import { StatusBadge } from "../StatusBadge";
+import AssetPagination from "./AssetPagination";
 import LoadingAssets from "./LoadingAssets";
 import ZeroAssets from "./ZeroAssets";
 
@@ -9,10 +10,19 @@ import type { Asset } from "../../types/assets";
 
 interface ComponentProps {
   assets: Asset[];
+  currentPage: number;
   isLoading: boolean;
+  onPageChange: (page: number) => void;
+  totalPages: number;
 }
 
-export function AssetList({ assets, isLoading }: ComponentProps) {
+export function AssetList({
+  assets,
+  currentPage,
+  isLoading,
+  onPageChange,
+  totalPages
+}: ComponentProps) {
   const selectedAssetId = useAssetUiStore(selectSelectedAssetId);
   const selectAsset = useAssetUiStore(selectSelectAsset);
 
@@ -100,6 +110,12 @@ export function AssetList({ assets, isLoading }: ComponentProps) {
           </article>
         ))}
       </div>
+
+      <AssetPagination
+        currentPage={currentPage}
+        onPageChange={onPageChange}
+        totalPages={totalPages}
+      />
     </section>
   );
 }

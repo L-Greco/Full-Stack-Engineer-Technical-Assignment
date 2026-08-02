@@ -31,7 +31,9 @@ export default function App() {
   const selectedAssetId = useAssetUiStore(selectSelectedAssetId);
 
   const assets = data?.data ?? EMPTY_ASSETS;
+  const currentPage = data?.meta.page ?? filters.page;
   const total = data?.meta.total ?? 0;
+  const totalPages = data?.meta.totalPages ?? 1;
   const errorMessage = error instanceof Error ? error.message : null;
 
   const activeSelectedAssetId = useMemo(() => {
@@ -66,6 +68,13 @@ export default function App() {
     void refetch();
   }
 
+  function handlePageChange(page: number) {
+    setFilters((currentFilters) => ({
+      ...currentFilters,
+      page
+    }));
+  }
+
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(71,125,255,0.18),transparent_28%),linear-gradient(180deg,#f4f7fb_0%,#e7edf5_100%)] px-4 py-5 text-slate-900 sm:px-8 sm:py-8">
       <section className="mx-auto max-w-7xl rounded-[28px] border border-slate-900/8 bg-white/92 p-6 mainShadow sm:p-8">
@@ -98,7 +107,13 @@ export default function App() {
           <section className="mt-5 flex flex-col-reverse gap-5 xl:flex-row">
             <div className="flex min-w-0 flex-1 flex-col gap-5">
               <AssetMap assets={assets} />
-              <AssetList assets={assets} isLoading={isLoading} />
+              <AssetList
+                assets={assets}
+                currentPage={currentPage}
+                isLoading={isLoading}
+                onPageChange={handlePageChange}
+                totalPages={totalPages}
+              />
             </div>
 
             <div className="w-full xl:max-w-sm xl:flex-none">
