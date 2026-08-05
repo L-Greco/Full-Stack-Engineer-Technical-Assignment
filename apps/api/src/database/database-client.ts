@@ -1,3 +1,6 @@
+/**
+ * Role: Owns the PostgreSQL pool lifecycle and provides connect/close helpers for application startup and shutdown.
+ */
 import { Pool, type PoolConfig } from "pg";
 
 import { env } from "../config/env.js";

@@ -1,3 +1,6 @@
+/**
+ * Role: Encapsulates asset persistence, SQL construction, row mapping, and initial seed loading.
+ */
 import { readFile } from "node:fs/promises";
 
 import { database, withDatabaseTransaction } from "../../database/database.js";

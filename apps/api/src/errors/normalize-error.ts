@@ -1,3 +1,6 @@
+/**
+ * Role: Converts unknown runtime failures into a predictable AppError contract for consistent API responses.
+ */
 import { AppError } from "./app-error.js";
 
 function isObject(value: unknown): value is Record<string, unknown> {

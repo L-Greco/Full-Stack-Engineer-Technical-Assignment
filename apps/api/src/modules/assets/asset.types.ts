@@ -1,3 +1,6 @@
+/**
+ * Role: Declares the shared domain, request, and response types used across the asset module.
+ */
 export const assetTypes = ["pipe", "hydrant", "sensor", "valve"] as const;
 export const assetStatuses = ["ok", "warning", "critical"] as const;
 

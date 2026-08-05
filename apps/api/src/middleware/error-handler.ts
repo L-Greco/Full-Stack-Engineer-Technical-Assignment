@@ -1,3 +1,6 @@
+/**
+ * Role: Translates normalized errors into the final HTTP error response and logs unexpected server failures.
+ */
 import type { NextFunction, Request, Response } from "express";
 
 import { normalizeError } from "../errors/normalize-error.js";

@@ -1,3 +1,6 @@
+/**
+ * Role: Defines the validation and parsing rules for asset requests, query params, and seed data.
+ */
 import * as yup from "yup";
 
 import type {
@@ -18,10 +21,7 @@ function isIsoDateString(value: string): boolean {
   return !Number.isNaN(date.getTime()) && date.toISOString().startsWith(value);
 }
 
-function toOptionalFiniteNumber(
-  _value: unknown,
-  originalValue: unknown
-): number | undefined {
+function toOptionalFiniteNumber(_value: unknown, originalValue: unknown): number | undefined {
   if (originalValue === undefined || originalValue === null || originalValue === "") {
     return undefined;
   }
@@ -30,16 +30,12 @@ function toOptionalFiniteNumber(
     return Number.NaN;
   }
 
-  const parsedValue =
-    typeof originalValue === "number" ? originalValue : Number(originalValue);
+  const parsedValue = typeof originalValue === "number" ? originalValue : Number(originalValue);
 
   return Number.isFinite(parsedValue) ? parsedValue : Number.NaN;
 }
 
-function toOptionalString(
-  _value: unknown,
-  originalValue: unknown
-): string | undefined {
+function toOptionalString(_value: unknown, originalValue: unknown): string | undefined {
   if (originalValue === undefined || originalValue === null || originalValue === "") {
     return undefined;
   }
@@ -112,18 +108,12 @@ const assetIdParamsSchema: yup.ObjectSchema<AssetRouteParams> = yup
 const nameSchema = yup.string().trim().required().min(1);
 const optionalNameSchema = yup.string().trim().optional().min(1);
 const assetTypeSchema = yup.mixed<(typeof assetTypes)[number]>().oneOf(assetTypes).required();
-const optionalAssetTypeSchema = yup
-  .string()
-  .optional()
-  .oneOf(assetTypes);
+const optionalAssetTypeSchema = yup.string().optional().oneOf(assetTypes);
 const assetStatusSchema = yup
   .mixed<(typeof assetStatuses)[number]>()
   .oneOf(assetStatuses)
   .required();
-const optionalAssetStatusSchema = yup
-  .string()
-  .optional()
-  .oneOf(assetStatuses);
+const optionalAssetStatusSchema = yup.string().optional().oneOf(assetStatuses);
 const latitudeSchema = yup.number().required().min(-90).max(90);
 const longitudeSchema = yup.number().required().min(-180).max(180);
 const optionalLatitudeSchema = yup.number().optional().min(-90).max(90);
@@ -173,11 +163,7 @@ export const listAssetsQuerySchema: yup.ObjectSchema<ListAssetsQueryInput> = yup
       .min(1)
       .max(100),
     type: yup.string().transform(toOptionalString).optional().oneOf(assetTypes),
-    status: yup
-      .string()
-      .transform(toOptionalString)
-      .optional()
-      .oneOf(assetStatuses),
+    status: yup.string().transform(toOptionalString).optional().oneOf(assetStatuses),
     minLat: optionalNumberSchema,
     maxLat: optionalNumberSchema,
     minLng: optionalNumberSchema,
@@ -194,8 +180,7 @@ export const listAssetsQuerySchema: yup.ObjectSchema<ListAssetsQueryInput> = yup
     if (providedBoundsCount > 0 && providedBoundsCount < 4) {
       return this.createError({
         path: "minLat",
-        message:
-          "Bounding box filters require minLat, maxLat, minLng, and maxLng together."
+        message: "Bounding box filters require minLat, maxLat, minLng, and maxLng together."
       });
     }
 
@@ -206,11 +191,7 @@ export const listAssetsQuerySchema: yup.ObjectSchema<ListAssetsQueryInput> = yup
       return true;
     }
 
-    if (
-      value.minLat !== undefined &&
-      value.maxLat !== undefined &&
-      value.minLat >= value.maxLat
-    ) {
+    if (value.minLat !== undefined && value.maxLat !== undefined && value.minLat >= value.maxLat) {
       return this.createError({
         path: "minLat",
         message: "minLat must be less than maxLat."
@@ -224,11 +205,7 @@ export const listAssetsQuerySchema: yup.ObjectSchema<ListAssetsQueryInput> = yup
       return true;
     }
 
-    if (
-      value.minLng !== undefined &&
-      value.maxLng !== undefined &&
-      value.minLng >= value.maxLng
-    ) {
+    if (value.minLng !== undefined && value.maxLng !== undefined && value.minLng >= value.maxLng) {
       return this.createError({
         path: "minLng",
         message: "minLng must be less than maxLng."

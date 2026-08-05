@@ -1,3 +1,6 @@
+/**
+ * Role: Declares the assets HTTP endpoints and attaches the validation middleware for each route.
+ */
 import { Router } from "express";
 
 import { validateRequest } from "../../middleware/validate-request.js";

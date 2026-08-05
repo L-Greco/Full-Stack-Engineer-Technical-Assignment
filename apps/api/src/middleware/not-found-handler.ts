@@ -1,3 +1,6 @@
+/**
+ * Role: Raises a structured 404 error when no route matches the incoming request.
+ */
 import type { NextFunction, Request, Response } from "express";
 
 import { AppError } from "../errors/app-error.js";

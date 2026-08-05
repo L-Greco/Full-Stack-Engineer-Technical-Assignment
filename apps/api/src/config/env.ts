@@ -1,3 +1,6 @@
+/**
+ * Role: Centralizes runtime configuration and default values for the API process and database connection.
+ */
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 

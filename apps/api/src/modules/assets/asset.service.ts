@@ -1,3 +1,6 @@
+/**
+ * Role: Holds the asset business behavior, including ID generation and domain-level not-found handling.
+ */
 import { randomUUID } from "node:crypto";
 
 import { AppError } from "../../errors/app-error.js";

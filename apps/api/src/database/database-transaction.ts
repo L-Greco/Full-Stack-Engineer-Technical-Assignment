@@ -1,3 +1,6 @@
+/**
+ * Role: Wraps work in a database transaction so multi-query operations stay atomic and rollback safely on failure.
+ */
 import type { PoolClient } from "pg";
 
 import { database } from "./database-client.js";

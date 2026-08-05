@@ -1,3 +1,6 @@
+/**
+ * Role: Defines the normalized application error shape used across middleware and business logic.
+ */
 export type AppErrorOptions = {
   statusCode: number;
   code: string;

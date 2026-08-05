@@ -1,3 +1,6 @@
+/**
+ * Role: Validates request input against Yup schemas and stores the sanitized result in res.locals.
+ */
 import type { NextFunction, Request, RequestHandler, Response } from "express";
 import { ValidationError, type Schema } from "yup";
 

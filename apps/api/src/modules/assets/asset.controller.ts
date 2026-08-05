@@ -1,3 +1,6 @@
+/**
+ * Role: Adapts validated HTTP requests into service calls and shapes the API response payloads.
+ */
 import type { Request, Response } from "express";
 
 import * as assetService from "./asset.service.js";

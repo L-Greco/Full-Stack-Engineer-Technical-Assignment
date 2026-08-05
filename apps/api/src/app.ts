@@ -1,3 +1,6 @@
+/**
+ * Role: Composes the Express application, shared middleware, health check, routes, and final error handling.
+ */
 import cors from "cors";
 import express from "express";
 
